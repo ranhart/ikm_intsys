@@ -8,7 +8,7 @@ import pickle
 
 # Загружаем сохраненную модель и параметры масштабирования
 try:
-    with open('ikm/best_insurance_model.pkl', 'rb') as file:
+    with open('best_insurance_model.pkl', 'rb') as file:
         model_data = pickle.load(file)
         
     model = model_data['model']

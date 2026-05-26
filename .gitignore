@@ -1,3 +1,7 @@
 best_insurance_model.pkl
 error_plot.png
-insurance.csv
+tests/__pycache__
+.venv/
+.pytest_cache/
+.gradio/
+__pycache__
