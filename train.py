@@ -33,8 +33,8 @@ for col in numeric_cols:
     df[col] = (df[col] - mean_val) / std_val
 
 # Отделяем X от y
-X = df.drop('charges', axis=1)
-y = df['charges']
+X = df.drop('charges', axis=1) # X (признаки) - все столбцы кроме 'charges' (возраст, пол, ИМТ, дети, курение, регион)
+y = df['charges'] # y (целевая переменная) - столбец 'charges' (стоимость страховки)
 
 # 4. Разделение данных на обучающую и тестовую выборку
 X_main, X_test, y_main, y_test = train_test_split(X, y, test_size=0.15, random_state=42)
@@ -154,5 +154,5 @@ print(f"Лучшая модель — Random Forest Regressor.")
 print(f"Её ключевая метрика (MAE) на абсолютно новых данных из тестовой выборки — ${final_mae:.2f}")
 print(f"Чаще всего она сильно занижает прогноз на случаях-аномалиях,")
 print(f"где реальная стоимость лечения колоссальна (>40 000$).")
-print(f"Из топ-20 худших ошибок {worst_smokers_pct:.0f}% пациентов — это курящие люди.")
+print(f"Из топ-20 худших ошибок {worst_smokers_pct:.0f}% пациенпутов — это курящие люди.")
 print("="*50)
