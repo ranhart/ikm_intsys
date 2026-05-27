@@ -22,7 +22,7 @@ df['sex'] = df['sex'].map({'female': 0, 'male': 1})
 df['smoker'] = df['smoker'].map({'no': 0, 'yes': 1})
 df['region'] = df['region'].map({'southwest': 0, 'southeast': 1, 'northwest': 2, 'northeast': 3})
 
-# 3. Масштабирование числовых признаков (Standardization)
+# 3. Стандартизация числовых признаков 
 numeric_cols = ['age', 'bmi', 'children']
 scaling_params = {} 
 
@@ -153,6 +153,6 @@ print("ФИНАЛЬНЫЙ ОТЧЕТ:")
 print(f"Лучшая модель — Random Forest Regressor.")
 print(f"Её ключевая метрика (MAE) на абсолютно новых данных из тестовой выборки — ${final_mae:.2f}")
 print(f"Чаще всего она сильно занижает прогноз на случаях-аномалиях,")
-print(f"где реальная стоимость лечения колоссальна (>40 000$).")
-print(f"Из топ-20 худших ошибок {worst_smokers_pct:.0f}% пациенпутов — это курящие люди.")
+print(f"где реальная стоимость лечения колоссальна (>25 000$).")
+print(f"Из топ-20 худших ошибок {worst_smokers_pct:.0f}% пациентов — это курящие люди.")
 print("="*50)
