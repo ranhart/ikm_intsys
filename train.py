@@ -6,37 +6,25 @@ from sklearn.model_selection import train_test_split, KFold
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
 
-# =====================================================================
-# БЛОК 1: ПОДГОТОВКА ДАННЫХ
-# =====================================================================
-print("--- НАЧАЛО: Подготовка данных ---")
+# Блок 1: Подготовка данных
+print("--- Начало: Подготовка данных ---")
 
 # 1. Загрузка CSV файла
-# Ожидается, что файл insurance.csv лежит в той же папке
 try:
     df = pd.read_csv('insurance.csv')
 except FileNotFoundError:
-    print("Ошибка: Файл 'insurance.csv' не найден. Скачайте датасет и положите его рядом со скриптом.")
+    print("Ошибка: Файл 'insurance.csv' не найден.")
     exit()
 
-# ОБЪЯСНЕНИЕ ПРИЗНАКОВ (X) И ОТВЕТА (y):
-# Признаки (X) - это параметры человека, на основе которых мы делаем прогноз: 
-# 'age' (возраст), 'sex' (пол), 'bmi' (индекс массы тела), 'children' (кол-во детей), 
-# 'smoker' (курит ли), 'region' (регион проживания).
-# Правильный ответ (y) - это целевая переменная 'charges' (стоимость страховки).
 
 # 2. Превращение категориальных признаков в числа (кодирование)
-# Модели машинного обучения работают только с числами. 
 df['sex'] = df['sex'].map({'female': 0, 'male': 1})
 df['smoker'] = df['smoker'].map({'no': 0, 'yes': 1})
 df['region'] = df['region'].map({'southwest': 0, 'southeast': 1, 'northwest': 2, 'northeast': 3})
 
 # 3. Масштабирование числовых признаков (Standardization)
-# Мы вычитаем среднее значение и делим на стандартное отклонение. 
-# Это нужно, чтобы признаки с большими значениями (например, возраст) 
-# не "задавили" признаки с малыми значениями (например, кол-во детей).
 numeric_cols = ['age', 'bmi', 'children']
-scaling_params = {} # Сохраним параметры для масштабирования новых данных в будущем
+scaling_params = {} 
 
 for col in numeric_cols:
     mean_val = df[col].mean()
@@ -48,10 +36,7 @@ for col in numeric_cols:
 X = df.drop('charges', axis=1)
 y = df['charges']
 
-# 4. Разделение данных на обучающую/проверочную и финальную тестовую (сейф)
-# ПОЧЕМУ ТАК: 85% данных (большая часть) нужна для обучения и кросс-валидации 
-# (подбора и сравнения моделей). 15% (маленькая часть) откладывается в "сейф". 
-# Модель НИКОГДА их не увидит до самого финала. Это гарантирует честную проверку.
+# 4. Разделение данных на обучающую и тестовую выборку
 X_main, X_test, y_main, y_test = train_test_split(X, y, test_size=0.15, random_state=42)
 
 # Сброс индексов, чтобы не было ошибок при кросс-валидации
@@ -60,12 +45,10 @@ y_main = y_main.reset_index(drop=True)
 
 print("Данные успешно подготовлены и разделены!\n")
 
-# =====================================================================
-# БЛОК 2: ОБУЧЕНИЕ И ДИАГНОСТИКА
-# =====================================================================
+# Блок 2: обучение
 print("--- НАЧАЛО: Обучение и диагностика ---")
 
-# АЛГОРИТМ 1: Простое правило (Собственная реализация)
+# Алгоритм 1: правило
 # Логика: Курение - главный фактор. Модель просто предсказывает среднюю 
 # стоимость для курильщика, если человек курит, и среднюю для некурящего, если нет.
 class SimpleSmokerRule:
@@ -75,13 +58,12 @@ class SimpleSmokerRule:
         self.cost_nonsmoker = y_train[X_train['smoker'] == 0].mean()
         
     def predict(self, X_val):
-        # Возвращаем предсказание на основе одного столбца
         return np.where(X_val['smoker'] == 1, self.cost_smoker, self.cost_nonsmoker)
 
-# АЛГОРИТМ 2: Готовый сложный алгоритм (Случайный лес)
+# Алгоритм 2: Готовый сложный алгоритм 
 rf_model = RandomForestRegressor(n_estimators=100, max_depth=5, random_state=42)
 
-# Цикл проверки: Кросс-валидация (5 фолдов)
+# Цикл проверки: Кросс-валидация
 kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
 simple_maes = []
@@ -92,14 +74,14 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(X_main)):
     X_tr, X_v = X_main.iloc[train_idx], X_main.iloc[val_idx]
     y_tr, y_v = y_main.iloc[train_idx], y_main.iloc[val_idx]
     
-    # Обучение и тест Простого правила
+    # Обучение и тест правила
     simple_model = SimpleSmokerRule()
     simple_model.fit(X_tr, y_tr)
     simple_preds = simple_model.predict(X_v)
     simple_mae = mean_absolute_error(y_v, simple_preds)
     simple_maes.append(simple_mae)
     
-    # Обучение и тест Случайного леса
+    # Обучение и тест RandomForestRegressor
     rf_model.fit(X_tr, y_tr)
     rf_preds = rf_model.predict(X_v)
     rf_mae = mean_absolute_error(y_v, rf_preds)
@@ -111,8 +93,7 @@ avg_rf_mae = np.mean(rf_maes)
 print(f"Средняя ошибка (MAE) Простого правила: ${avg_simple_mae:.2f}")
 print(f"Средняя ошибка (MAE) Случайного леса: ${avg_rf_mae:.2f}\n")
 
-# ДИАГНОСТИКА: На каких примерах модель ошибается чаще всего?
-# Обучим RF на всех main данных и предскажем для них же, чтобы найти паттерны ошибок
+# Выявление ошибок
 rf_model.fit(X_main, y_main)
 main_preds = rf_model.predict(X_main)
 errors = np.abs(y_main - main_preds)
@@ -142,16 +123,13 @@ plt.grid(True)
 plt.savefig('error_plot.png')
 print("График ошибок сохранен в файл 'error_plot.png'.\n")
 
-
-# =====================================================================
-# БЛОК 3: ФИНАЛЬНЫЙ ОТБОР И СОХРАНЕНИЕ
-# =====================================================================
+# Блок 3: финальный отбор и сохранение
 print("--- НАЧАЛО: Финальный отбор и сохранение ---")
 
-# Очевидно, что Случайный лес работает лучше. Фиксируем его.
+# RandomForestRegressor работает лучше.
 best_model = rf_model
 
-# Один раз проверяем на отложенных данных (X_test, y_test)
+# Один раз проверяем на тестовой выборке(X_test, y_test)
 final_predictions = best_model.predict(X_test)
 final_mae = mean_absolute_error(y_test, final_predictions)
 
@@ -167,14 +145,13 @@ with open('best_insurance_model.pkl', 'wb') as file:
 print("Модель успешно сохранена в 'best_insurance_model.pkl'!\n")
 
 # Анализ паттерна худших ошибок для финального отчета
-# Проверим, кого в основном содержат худшие прогнозы (обычно это курящие с высоким ИМТ)
 worst_smokers_pct = worst_predictions['smoker'].mean() * 100
 
 # ФИНАЛЬНЫЙ ОТЧЕТ:
 print("="*50)
 print("ФИНАЛЬНЫЙ ОТЧЕТ:")
 print(f"Лучшая модель — Random Forest Regressor.")
-print(f"Её ключевая метрика (MAE) на абсолютно новых данных из 'сейфа' — ${final_mae:.2f}")
+print(f"Её ключевая метрика (MAE) на абсолютно новых данных из тестовой выборки — ${final_mae:.2f}")
 print(f"Чаще всего она сильно занижает прогноз на случаях-аномалиях,")
 print(f"где реальная стоимость лечения колоссальна (>40 000$).")
 print(f"Из топ-20 худших ошибок {worst_smokers_pct:.0f}% пациентов — это курящие люди.")
